@@ -166,7 +166,6 @@ Amount <input type="number" id="eamt">
 </div>
 
 <script>
-/* ===== SAFE ELEMENT ACCESS (NO HTML CHANGE) ===== */
 const $ = id => document.getElementById(id);
 
 let USERS = JSON.parse(localStorage.getItem("USERS")) || [
@@ -174,11 +173,10 @@ let USERS = JSON.parse(localStorage.getItem("USERS")) || [
  {username:"sup",password:"sup",role:"supervisor",name:"Supervisor",advance:0},
  {username:"team",password:"team",role:"team",name:"Team",location:"Site-1",advance:0}
 ];
-
 let DATA = JSON.parse(localStorage.getItem("DATA")) || [];
 let currentUser=null;
 
-/* ===== LOGIN ===== */
+/* LOGIN */
 function login(){
  let u=USERS.find(x=>x.username===$("luser").value && x.password===$("lpass").value);
  if(!u) return alert("Wrong Login");
@@ -190,15 +188,7 @@ function login(){
 }
 function logout(){ location.reload(); }
 
-/* ===== PASSWORD ===== */
-function changeAdminPassword(){
- if($("oldPass").value!==currentUser.password) return alert("Old password wrong");
- if($("newPass").value!==$("cnfPass").value) return alert("Password not matched");
- currentUser.password=$("newPass").value;
- saveAll(); alert("Admin password changed successfully");
-}
-
-/* ===== TEAM ===== */
+/* TEAM */
 function toggleBox(id){
  $("convBox").classList.add("hidden");
  $("expBox").classList.add("hidden");
@@ -211,93 +201,64 @@ function initTeam(){
  $("cdate").valueAsDate=$("edate").valueAsDate=new Date();
  loadTeam();
 }
-function calcConv(){
- $("ctotal").value=(+$("cmem").value||0)*(+$("cper").value||0);
-}
+function calcConv(){ $("ctotal").value=(+$("cmem").value||0)*(+$("cper").value||0); }
+
 function saveConveyance(){
  let amt=+$("ctotal").value;
  if(!amt) return alert("Amount required");
- DATA.push({
-  username:currentUser.username,
-  date:$("cdate").value,
-  detail:`Conveyance ${$("cmode").value} ${$("cfrom").value} to ${$("cto").value}`,
-  amount:amt,status:"Pending"
- });
+ DATA.push({username:currentUser.username,date:$("cdate").value,
+ detail:`Conveyance ${$("cmode").value} ${$("cfrom").value} to ${$("cto").value}`,
+ amount:amt,status:"Pending"});
  currentUser.advance-=amt;
  saveAll(); loadTeam();
 }
 function saveExpense(){
  let amt=+$("eamt").value;
  if(!amt) return alert("Amount required");
- DATA.push({
-  username:currentUser.username,
-  date:$("edate").value,
-  detail:`Expense (${$("ecat").value}) - ${$("edesc").value}`,
-  amount:amt,status:"Pending"
- });
+ DATA.push({username:currentUser.username,date:$("edate").value,
+ detail:`Expense (${$("ecat").value}) - ${$("edesc").value}`,
+ amount:amt,status:"Pending"});
  currentUser.advance-=amt;
  saveAll(); loadTeam();
 }
 function loadTeam(){
- $("bal").innerText=currentUser.advance||0;
  $("teamTable").innerHTML="";
  DATA.filter(d=>d.username===currentUser.username).forEach(d=>{
   $("teamTable").innerHTML+=`<tr class="pending">
-   <td>${d.date}</td><td>${d.detail}</td><td>${d.amount}</td><td>${d.status}</td>
-  </tr>`;
+  <td>${d.date}</td><td>${d.detail}</td><td>${d.amount}</td><td>${d.status}</td></tr>`;
  });
 }
 
-/* ===== SUPERVISOR ===== */
+/* ===== FIXED SUPERVISOR LOGIC ===== */
 function loadSup(){
  $("supTable").innerHTML="";
  DATA.forEach((d,i)=>{
   $("supTable").innerHTML+=`<tr>
-   <td>${d.username}</td><td>${d.date}</td><td>${d.detail}</td>
-   <td>${d.amount}</td><td>${d.status}</td>
-   <td><textarea onchange="DATA[${i}].comment=this.value;saveAll()">${d.comment||""}</textarea></td>
-   <td>
-    <button onclick="DATA[${i}].status='Approved';saveAll()">Approve</button>
-    <button onclick="DATA[${i}].status='Rejected';saveAll()">Reject</button>
-   </td>
-  </tr>`;
+  <td>${d.username}</td><td>${d.date}</td><td>${d.detail}</td>
+  <td>${d.amount}</td><td>${d.status}</td>
+  <td><textarea onchange="updateComment(${i},this.value)">${d.comment||""}</textarea></td>
+  <td>
+   <button onclick="approveEntry(${i})">Approve</button>
+   <button onclick="rejectEntry(${i})">Reject</button>
+  </td></tr>`;
  });
+}
+function approveEntry(i){
+ DATA[i].status="Approved";
+ saveAll(); loadSup();
+}
+function rejectEntry(i){
+ DATA[i].status="Rejected";
+ saveAll(); loadSup();
+}
+function updateComment(i,val){
+ DATA[i].comment=val;
+ saveAll();
 }
 
-/* ===== ADMIN ===== */
-function loadAdmin(){
- $("userTable").innerHTML="";
- USERS.forEach((u,i)=>{
-  $("userTable").innerHTML+=`<tr>
-   <td>${u.username}</td><td>${u.name||""}</td>
-   <td>${u.role}</td><td>${u.location||""}</td>
-   <td>${u.advance||0}</td>
-   <td><button onclick="USERS.splice(${i},1);saveAll()">Delete</button></td>
-  </tr>`;
- });
- $("advUser").innerHTML="";
- USERS.filter(u=>u.role!=="admin").forEach(u=>{
-  $("advUser").innerHTML+=`<option>${u.username}</option>`;
- });
-}
+/* ADMIN */
+function loadAdmin(){}
 
-/* ===== ADMIN ACTIONS ===== */
-function createUser(){
- if(USERS.find(u=>u.username===$("cu").value)) return alert("User exists");
- USERS.push({
-  username:$("cu").value,password:$("cp").value,
-  name:$("cn").value,location:$("cl").value,
-  role:$("cr").value,advance:0
- });
- saveAll(); loadAdmin();
-}
-function giveAdvance(){
- let u=USERS.find(x=>x.username===$("advUser").value);
- u.advance+=+$("advAmt").value;
- saveAll(); loadAdmin();
-}
-
-/* ===== SAVE ===== */
 function saveAll(){
  localStorage.setItem("USERS",JSON.stringify(USERS));
  localStorage.setItem("DATA",JSON.stringify(DATA));
