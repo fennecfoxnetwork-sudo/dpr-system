@@ -2,30 +2,19 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DPR System – Final One Page</title>
 
-<!-- ✅ Mobile friendly -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body{
-  font-family:Arial;
-  background:#f2f2f2;
-  padding:20px;
-  font-size:15px;   /* mobile readability */
-}
-h2{color:#fff;padding:10px}
+body{font-family:system-ui,-apple-system,Roboto,Arial;background:#f2f2f2;padding:10px}
+h2{color:#fff;padding:10px;border-radius:6px}
 .admin{background:#0d6efd}
 .supervisor{background:#b02a37}
 .team{background:#198754}
-.box{background:#fff;padding:15px;margin-bottom:15px;border-radius:6px}
-input,select,button,textarea{
-  width:100%;
-  padding:10px;
-  margin:4px 0;
-  font-size:15px;
-}
-table{width:100%;border-collapse:collapse;margin-top:10px}
+.box{background:#fff;padding:12px;margin-bottom:12px;border-radius:6px}
+input,select,button,textarea{width:100%;padding:8px;margin:6px 0;font-size:16px}
+button{cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
 th,td{border:1px solid #ccc;padding:6px;text-align:center}
 .hidden{display:none}
 .pending{background:#fff3cd}
@@ -51,19 +40,18 @@ Password <input id="lpass" type="password">
 
 <div class="box">
 <h3>Change Admin Password</h3>
-Old Password <input type="password" id="oldPass">
-New Password <input type="password" id="newPass">
-Confirm New Password <input type="password" id="cnfPass">
+<input id="oldPass" type="password" placeholder="Old password">
+<input id="newPass" type="password" placeholder="New password">
+<input id="cnfPass" type="password" placeholder="Confirm password">
 <button onclick="changeAdminPassword()">Change Password</button>
 </div>
 
 <div class="box">
 <h3>Create User</h3>
-Username <input id="cu">
-Password <input id="cp">
-Name <input id="cn">
-Location <input id="cl">
-Role
+<input id="cu" placeholder="Username">
+<input id="cp" placeholder="Password">
+<input id="cn" placeholder="Name">
+<input id="cl" placeholder="Location">
 <select id="cr">
 <option value="team">Team</option>
 <option value="supervisor">Supervisor</option>
@@ -74,29 +62,27 @@ Role
 <div class="box">
 <h3>Existing Users</h3>
 <table>
-<thead>
-<tr><th>User</th><th>Name</th><th>Role</th><th>Location</th><th>Advance</th><th>Action</th></tr>
-</thead>
+<thead><tr>
+<th>User</th><th>Name</th><th>Role</th><th>Location</th><th>Advance</th>
+</tr></thead>
 <tbody id="userTable"></tbody>
 </table>
 </div>
 
 <div class="box">
 <h3>Give Advance</h3>
-User <select id="advUser"></select>
-Amount <input type="number" id="advAmt">
+<select id="advUser"></select>
+<input id="advAmt" type="number" placeholder="Amount">
 <button onclick="giveAdvance()">Give Advance</button>
 </div>
 
 <div class="box">
 <h3>Approved Entries</h3>
 <table>
-<thead>
-<tr>
+<thead><tr>
 <th>User</th><th>Date</th><th>Detail</th><th>Amount</th>
 <th>Status</th><th>Payment</th><th>Action</th>
-</tr>
-</thead>
+</tr></thead>
 <tbody id="adminTable"></tbody>
 </table>
 </div>
@@ -113,12 +99,10 @@ Amount <input type="number" id="advAmt">
 <div id="supervisorPanel" class="hidden">
 <h2 class="supervisor">SUPERVISOR PANEL</h2>
 <table>
-<thead>
-<tr>
+<thead><tr>
 <th>User</th><th>Date</th><th>Detail</th>
-<th>Amount</th><th>Status</th><th>Comment</th><th>Action</th>
-</tr>
-</thead>
+<th>Amount</th><th>Status</th><th>Action</th>
+</tr></thead>
 <tbody id="supTable"></tbody>
 </table>
 <button onclick="logout()">Logout</button>
@@ -141,36 +125,34 @@ Amount <input type="number" id="advAmt">
 
 <div class="box hidden" id="convBox">
 <h3>Conveyance</h3>
-Date <input type="date" id="cdate">
-From <input id="cfrom">
-To <input id="cto">
-Transport
+<input type="date" id="cdate">
+<input id="cfrom" placeholder="From">
+<input id="cto" placeholder="To">
 <select id="cmode">
 <option>Bus</option><option>Train</option><option>Bike</option>
-<option>Flight</option><option>Taxi</option><option>Auto</option>
+<option>Taxi</option><option>Auto</option>
 </select>
-Members <input type="number" id="cmem" value="1" oninput="calcConv()">
-Amount / Person <input type="number" id="cper" oninput="calcConv()">
-Total Amount <input type="number" id="ctotal">
-<button onclick="saveConveyance()">Submit Conveyance</button>
+<input type="number" id="cmem" value="1" oninput="calcConv()">
+<input type="number" id="cper" placeholder="Amount per person" oninput="calcConv()">
+<input id="ctotal" placeholder="Total">
+<button onclick="saveConveyance()">Submit</button>
 </div>
 
 <div class="box hidden" id="expBox">
 <h3>Expense</h3>
-Date <input type="date" id="edate">
-Category
+<input type="date" id="edate">
 <select id="ecat"><option>Office</option><option>Other</option></select>
-Description <input id="edesc">
-Amount <input type="number" id="eamt">
-<button onclick="saveExpense()">Submit Expense</button>
+<input id="edesc" placeholder="Description">
+<input id="eamt" placeholder="Amount">
+<button onclick="saveExpense()">Submit</button>
 </div>
 
 <div class="box">
 <h3>My Entries</h3>
 <table>
-<thead>
-<tr><th>Date</th><th>Detail</th><th>Amount</th><th>Status</th></tr>
-</thead>
+<thead><tr>
+<th>Date</th><th>Detail</th><th>Amount</th><th>Status</th>
+</tr></thead>
 <tbody id="teamTable"></tbody>
 </table>
 </div>
@@ -179,10 +161,9 @@ Amount <input type="number" id="eamt">
 </div>
 
 <script>
-/* ================= GOOGLE SHEET CONFIG ================= */
+/* 🔴 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL */
 const GOOGLE_API_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
 
-/* ================= LOCAL STORAGE ================= */
 let USERS = JSON.parse(localStorage.getItem("USERS")) || [
  {username:"admin",password:"admin",role:"admin",name:"Admin"},
  {username:"sup",password:"sup",role:"supervisor",name:"Supervisor",advance:0},
@@ -190,11 +171,11 @@ let USERS = JSON.parse(localStorage.getItem("USERS")) || [
 ];
 
 let DATA = JSON.parse(localStorage.getItem("DATA")) || [];
-let currentUser = null;
+let currentUser=null;
 
-/* ================= LOGIN ================= */
+/* ---------- AUTH ---------- */
 function login(){
- let u = USERS.find(x=>x.username==luser.value && x.password==lpass.value);
+ let u=USERS.find(x=>x.username==luser.value && x.password==lpass.value);
  if(!u) return alert("Wrong Login");
  currentUser=u;
  loginBox.classList.add("hidden");
@@ -204,19 +185,24 @@ function login(){
 }
 function logout(){location.reload();}
 
-/* ================= PASSWORD ================= */
+/* ---------- ADMIN ---------- */
 function changeAdminPassword(){
  if(oldPass.value!==currentUser.password) return alert("Old password wrong");
- if(newPass.value!==cnfPass.value) return alert("Password not matched");
- currentUser.password=newPass.value;
+ if(newPass.value!==cnfPass.value) return alert("Mismatch");
+ currentUser.password=newPass.value; saveAll(); alert("Password changed");
+}
+function createUser(){
+ USERS.push({username:cu.value,password:cp.value,name:cn.value,location:cl.value,role:cr.value,advance:0});
  saveAll();
- alert("Password changed");
+}
+function giveAdvance(){
+ let u=USERS.find(x=>x.username==advUser.value);
+ u.advance+=+advAmt.value; saveAll();
 }
 
-/* ================= TEAM ================= */
+/* ---------- TEAM ---------- */
 function toggleBox(id){
- convBox.classList.add("hidden");
- expBox.classList.add("hidden");
+ convBox.classList.add("hidden"); expBox.classList.add("hidden");
  document.getElementById(id).classList.remove("hidden");
 }
 function initTeam(){
@@ -229,78 +215,75 @@ function initTeam(){
 function calcConv(){ctotal.value=(+cmem.value||0)*(+cper.value||0);}
 
 function saveConveyance(){
- let amt=+ctotal.value;
- DATA.push({
-  username:currentUser.username,
-  role:currentUser.role,
-  date:cdate.value,
-  detail:`Conveyance ${cmode.value} ${cfrom.value} to ${cto.value}`,
-  amount:amt,
-  status:"Pending",
-  synced:false
- });
- currentUser.advance-=amt;
- saveAll();
+ let amt=+ctotal.value; if(!amt) return alert("Amount required");
+ pushData(`Conveyance ${cmode.value} ${cfrom.value} to ${cto.value}`,amt);
 }
-
 function saveExpense(){
- let amt=+eamt.value;
+ let amt=+eamt.value; if(!amt||!edesc.value) return alert("Fill all");
+ pushData(`Expense (${ecat.value}) - ${edesc.value}`,amt);
+}
+function pushData(detail,amt){
  DATA.push({
   username:currentUser.username,
   role:currentUser.role,
-  date:edate.value,
-  detail:`Expense (${ecat.value}) - ${edesc.value}`,
-  amount:amt,
-  status:"Pending",
-  synced:false
+  date:new Date().toISOString().slice(0,10),
+  detail,amount:amt,status:"Pending",synced:false
  });
  currentUser.advance-=amt;
- saveAll();
+ saveAll(); syncGoogle(); loadTeam();
 }
 
+/* ---------- LOADERS ---------- */
 function loadTeam(){
  bal.innerText=currentUser.advance||0;
  teamTable.innerHTML="";
  DATA.filter(d=>d.username==currentUser.username).forEach(d=>{
-  teamTable.innerHTML+=`<tr class="pending">
-  <td>${d.date}</td><td>${d.detail}</td>
-  <td>${d.amount}</td><td>${d.status}</td></tr>`;
+  teamTable.innerHTML+=`<tr class="${d.status.toLowerCase()}">
+  <td>${d.date}</td><td>${d.detail}</td><td>${d.amount}</td><td>${d.status}</td></tr>`;
  });
 }
-
-/* ================= ADMIN / SUP ================= */
-function loadSup(){}
-function loadAdmin(){}
-function createUser(){
- USERS.push({username:cu.value,password:cp.value,name:cn.value,location:cl.value,role:cr.value,advance:0});
- saveAll();
+function loadSup(){
+ supTable.innerHTML="";
+ DATA.forEach((d,i)=>{
+  supTable.innerHTML+=`<tr>
+  <td>${d.username}</td><td>${d.date}</td><td>${d.detail}</td>
+  <td>${d.amount}</td><td>${d.status}</td>
+  <td>
+  <button onclick="DATA[${i}].status='Approved';saveAll()">Approve</button>
+  <button onclick="DATA[${i}].status='Rejected';saveAll()">Reject</button>
+  </td></tr>`;
+ });
 }
-function giveAdvance(){
- let u=USERS.find(x=>x.username==advUser.value);
- u.advance+=+advAmt.value;
- saveAll();
+function loadAdmin(){
+ userTable.innerHTML="";
+ USERS.forEach(u=>{
+  userTable.innerHTML+=`<tr>
+  <td>${u.username}</td><td>${u.name||""}</td>
+  <td>${u.role}</td><td>${u.location||""}</td>
+  <td>${u.advance||0}</td></tr>`;
+ });
+ advUser.innerHTML="";
+ USERS.filter(u=>u.role!="admin").forEach(u=>advUser.innerHTML+=`<option>${u.username}</option>`);
 }
 
-/* ================= SAVE + SYNC ================= */
+/* ---------- STORAGE ---------- */
 function saveAll(){
  localStorage.setItem("USERS",JSON.stringify(USERS));
  localStorage.setItem("DATA",JSON.stringify(DATA));
- syncGoogle();
 }
 
-async function syncGoogle(){
- if(!navigator.onLine) return;
- for(let d of DATA.filter(x=>!x.synced)){
-  try{
-   let r=await fetch(GOOGLE_API_URL,{method:"POST",body:JSON.stringify(d)});
-   let j=await r.json();
-   if(j.status=="success") d.synced=true;
-  }catch(e){}
- }
- localStorage.setItem("DATA",JSON.stringify(DATA));
+/* ---------- GOOGLE SYNC ---------- */
+function syncGoogle(){
+ if(!navigator.onLine || !GOOGLE_API_URL.startsWith("http")) return;
+ DATA.filter(d=>!d.synced).forEach(d=>{
+  fetch(GOOGLE_API_URL,{
+   method:"POST",
+   body:JSON.stringify(d),
+   headers:{"Content-Type":"application/json"}
+  }).then(()=>d.synced=true);
+ });
 }
-
-window.addEventListener("online", syncGoogle);
+window.addEventListener("online",syncGoogle);
 </script>
 
 </body>
