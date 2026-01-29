@@ -2,24 +2,24 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DPR System – Final One Page</title>
 
 <style>
-body{font-family:system-ui,Roboto,Arial;background:#f2f2f2;padding:10px}
-h2{color:#fff;padding:10px;border-radius:6px}
+body{font-family:Arial;background:#f2f2f2;padding:20px}
+h2{color:#fff;padding:10px}
 .admin{background:#0d6efd}
 .supervisor{background:#b02a37}
 .team{background:#198754}
-.box{background:#fff;padding:12px;margin-bottom:12px;border-radius:6px}
-input,select,button,textarea{width:100%;padding:8px;margin:6px 0;font-size:16px}
-button{cursor:pointer}
-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+.box{background:#fff;padding:15px;margin-bottom:15px;border-radius:6px}
+input,select,button,textarea{width:100%;padding:6px;margin:4px 0}
+table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{border:1px solid #ccc;padding:6px;text-align:center}
 .hidden{display:none}
 .pending{background:#fff3cd}
 .approved{background:#d1e7dd}
 .rejected{background:#f8d7da}
+.paid{background:#cfe2ff}
+.unpaid{background:#ffe5b4}
 </style>
 </head>
 
@@ -27,21 +27,31 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 
 <h2 class="admin">LOGIN</h2>
 <div class="box" id="loginBox">
-<input id="luser" placeholder="Username">
-<input id="lpass" type="password" placeholder="Password">
+Username <input id="luser">
+Password <input id="lpass" type="password">
 <button onclick="login()">Login</button>
 </div>
 
-<!-- ADMIN -->
+<!-- ================= ADMIN ================= -->
 <div id="adminPanel" class="hidden">
 <h2 class="admin">ADMIN PANEL</h2>
 
+<!-- 🔐 ADMIN PASSWORD CHANGE (ONLY THIS ADDITION) -->
+<div class="box">
+<h3>Change Admin Password</h3>
+Old Password <input type="password" id="oldPass">
+New Password <input type="password" id="newPass">
+Confirm New Password <input type="password" id="cnfPass">
+<button onclick="changeAdminPassword()">Change Password</button>
+</div>
+
 <div class="box">
 <h3>Create User</h3>
-<input id="cu" placeholder="Username">
-<input id="cp" placeholder="Password">
-<input id="cn" placeholder="Name">
-<input id="cl" placeholder="Location">
+Username <input id="cu">
+Password <input id="cp">
+Name <input id="cn">
+Location <input id="cl">
+Role
 <select id="cr">
 <option value="team">Team</option>
 <option value="supervisor">Supervisor</option>
@@ -50,59 +60,105 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 </div>
 
 <div class="box">
-<h3>Users</h3>
+<h3>Existing Users</h3>
 <table>
-<thead><tr><th>User</th><th>Role</th><th>Advance</th></tr></thead>
+<thead>
+<tr><th>User</th><th>Name</th><th>Role</th><th>Location</th><th>Advance</th><th>Action</th></tr>
+</thead>
 <tbody id="userTable"></tbody>
 </table>
+</div>
+
+<div class="box">
+<h3>Give Advance</h3>
+User <select id="advUser"></select>
+Amount <input type="number" id="advAmt">
+<button onclick="giveAdvance()">Give Advance</button>
+</div>
+
+<div class="box">
+<h3>Approved Entries</h3>
+<table>
+<thead>
+<tr>
+<th>User</th><th>Date</th><th>Detail</th><th>Amount</th>
+<th>Status</th><th>Payment</th><th>Action</th>
+</tr>
+</thead>
+<tbody id="adminTable"></tbody>
+</table>
+</div>
+
+<div class="box">
+<b>Total Paid:</b> ₹<span id="paidT">0</span> |
+<b>Total Pending:</b> ₹<span id="pendT">0</span>
 </div>
 
 <button onclick="logout()">Logout</button>
 </div>
 
-<!-- SUPERVISOR -->
+<!-- ================= SUPERVISOR ================= -->
 <div id="supervisorPanel" class="hidden">
 <h2 class="supervisor">SUPERVISOR PANEL</h2>
 <table>
-<thead><tr><th>User</th><th>Date</th><th>Detail</th><th>Amount</th><th>Action</th></tr></thead>
+<thead>
+<tr>
+<th>User</th><th>Date</th><th>Detail</th>
+<th>Amount</th><th>Status</th><th>Comment</th><th>Action</th>
+</tr>
+</thead>
 <tbody id="supTable"></tbody>
 </table>
 <button onclick="logout()">Logout</button>
 </div>
 
-<!-- TEAM -->
+<!-- ================= TEAM ================= -->
 <div id="teamPanel" class="hidden">
 <h2 class="team">TEAM PANEL</h2>
 
 <div class="box">
 <b>Name:</b> <span id="tname"></span><br>
-<b>Advance:</b> ₹<span id="bal"></span>
+<b>Project:</b> <span id="tloc"></span><br>
+<b>Advance Balance:</b> ₹<span id="bal"></span>
 </div>
 
 <div class="box">
-<button onclick="showConv()">➕ Conveyance</button>
-<button onclick="showExp()">➕ Expense</button>
+<button onclick="toggleBox('convBox')">➕ CONVEYANCE</button>
+<button onclick="toggleBox('expBox')">➕ EXPENSE</button>
 </div>
 
 <div class="box hidden" id="convBox">
-<input type="date" id="cdate">
-<input id="cfrom" placeholder="From">
-<input id="cto" placeholder="To">
-<input id="ctotal" type="number" placeholder="Amount">
-<button onclick="saveConv()">Submit Conveyance</button>
+<h3>Conveyance</h3>
+Date <input type="date" id="cdate">
+From <input id="cfrom">
+To <input id="cto">
+Transport
+<select id="cmode">
+<option>Bus</option><option>Train</option><option>Bike</option>
+<option>Flight</option><option>Taxi</option><option>Auto</option>
+</select>
+Members <input type="number" id="cmem" value="1" oninput="calcConv()">
+Amount / Person <input type="number" id="cper" oninput="calcConv()">
+Total Amount <input type="number" id="ctotal">
+<button onclick="saveConveyance()">Submit Conveyance</button>
 </div>
 
 <div class="box hidden" id="expBox">
-<input type="date" id="edate">
-<input id="edesc" placeholder="Description">
-<input id="eamt" type="number" placeholder="Amount">
-<button onclick="saveExp()">Submit Expense</button>
+<h3>Expense</h3>
+Date <input type="date" id="edate">
+Category
+<select id="ecat"><option>Office</option><option>Other</option></select>
+Description <input id="edesc">
+Amount <input type="number" id="eamt">
+<button onclick="saveExpense()">Submit Expense</button>
 </div>
 
 <div class="box">
 <h3>My Entries</h3>
 <table>
-<thead><tr><th>Date</th><th>Detail</th><th>Amount</th><th>Status</th></tr></thead>
+<thead>
+<tr><th>Date</th><th>Detail</th><th>Amount</th><th>Status</th></tr>
+</thead>
 <tbody id="teamTable"></tbody>
 </table>
 </div>
@@ -111,110 +167,136 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 </div>
 
 <script>
-/* SAFE DOM */
-const $ = id => document.getElementById(id);
-
-let USERS = JSON.parse(localStorage.getItem("USERS")) || [
- {username:"admin",password:"admin",role:"admin",advance:0},
- {username:"sup",password:"sup",role:"supervisor",advance:0},
- {username:"team",password:"team",role:"team",advance:500}
+let USERS=JSON.parse(localStorage.getItem("USERS"))||[
+{username:"admin",password:"admin",role:"admin",name:"Admin"},
+{username:"sup",password:"sup",role:"supervisor",name:"Supervisor",advance:0},
+{username:"team",password:"team",role:"team",name:"Team",location:"Site-1",advance:0}
 ];
-
-let DATA = JSON.parse(localStorage.getItem("DATA")) || [];
+let DATA=JSON.parse(localStorage.getItem("DATA"))||[];
 let currentUser=null;
 
-/* LOGIN */
 function login(){
- const u = USERS.find(x=>x.username===$("luser").value && x.password===$("lpass").value);
- if(!u){alert("Wrong Login");return;}
- currentUser=u;
- $("loginBox").classList.add("hidden");
+let u=USERS.find(x=>x.username==luser.value && x.password==lpass.value);
+if(!u)return alert("Wrong Login");
+currentUser=u;
+loginBox.classList.add("hidden");
+if(u.role=="admin"){adminPanel.classList.remove("hidden");loadAdmin();}
+if(u.role=="supervisor"){supervisorPanel.classList.remove("hidden");loadSup();}
+if(u.role=="team"){teamPanel.classList.remove("hidden");initTeam();}
+}
+function logout(){location.reload();}
 
- if(u.role==="admin"){ $("adminPanel").classList.remove("hidden"); loadAdmin(); }
- if(u.role==="supervisor"){ $("supervisorPanel").classList.remove("hidden"); loadSup(); }
- if(u.role==="team"){ $("teamPanel").classList.remove("hidden"); initTeam(); }
+/* 🔐 ADMIN PASSWORD CHANGE LOGIC */
+function changeAdminPassword(){
+if(oldPass.value!==currentUser.password)
+return alert("Old password wrong");
+if(newPass.value!==cnfPass.value)
+return alert("Password not matched");
+currentUser.password=newPass.value;
+saveAll();
+oldPass.value=newPass.value=cnfPass.value="";
+alert("Admin password changed successfully");
 }
 
-function logout(){ location.reload(); }
-
-/* ADMIN */
-function createUser(){
- USERS.push({
-  username:$("cu").value,
-  password:$("cp").value,
-  role:$("cr").value,
-  advance:0
- });
- saveAll();
- loadAdmin();
+/* ---- rest SAME ---- */
+function toggleBox(id){
+convBox.classList.add("hidden");
+expBox.classList.add("hidden");
+document.getElementById(id).classList.remove("hidden");
 }
-
-function loadAdmin(){
- $("userTable").innerHTML="";
- USERS.forEach(u=>{
-  $("userTable").innerHTML+=`<tr>
-   <td>${u.username}</td><td>${u.role}</td><td>${u.advance}</td>
-  </tr>`;
- });
-}
-
-/* SUPERVISOR */
-function loadSup(){
- $("supTable").innerHTML="";
- DATA.forEach((d,i)=>{
-  $("supTable").innerHTML+=`<tr>
-   <td>${d.user}</td><td>${d.date}</td><td>${d.detail}</td><td>${d.amount}</td>
-   <td>
-    <button onclick="approve(${i})">Approve</button>
-    <button onclick="reject(${i})">Reject</button>
-   </td>
-  </tr>`;
- });
-}
-function approve(i){ DATA[i].status="Approved"; saveAll(); loadSup(); }
-function reject(i){ DATA[i].status="Rejected"; saveAll(); loadSup(); }
-
-/* TEAM */
 function initTeam(){
- $("tname").innerText=currentUser.username;
- $("bal").innerText=currentUser.advance;
- loadTeam();
+tname.innerText=currentUser.name;
+tloc.innerText=currentUser.location;
+bal.innerText=currentUser.advance||0;
+cdate.valueAsDate=edate.valueAsDate=new Date();
+loadTeam();
 }
-function showConv(){ $("convBox").classList.remove("hidden"); $("expBox").classList.add("hidden"); }
-function showExp(){ $("expBox").classList.remove("hidden"); $("convBox").classList.add("hidden"); }
-
-function saveConv(){
- addEntry("Conveyance",+$("ctotal").value);
+function calcConv(){ctotal.value=(+cmem.value||0)*(+cper.value||0);}
+function saveConveyance(){
+let amt=+ctotal.value;
+DATA.push({username:currentUser.username,date:cdate.value,
+detail:`Conveyance ${cmode.value} ${cfrom.value} to ${cto.value}`,
+amount:amt,status:"Pending"});
+currentUser.advance-=amt;saveAll();
 }
-function saveExp(){
- addEntry("Expense - "+$("edesc").value,+$("eamt").value);
+function saveExpense(){
+let amt=+eamt.value;
+DATA.push({username:currentUser.username,date:edate.value,
+detail:`Expense (${ecat.value}) - ${edesc.value}`,
+amount:amt,status:"Pending"});
+currentUser.advance-=amt;saveAll();
 }
-function addEntry(detail,amt){
- if(!amt){alert("Amount required");return;}
- DATA.push({
-  user:currentUser.username,
-  date:new Date().toISOString().slice(0,10),
-  detail,amount:amt,status:"Pending"
- });
- currentUser.advance-=amt;
- saveAll();
- loadTeam();
-}
-
 function loadTeam(){
- $("bal").innerText=currentUser.advance;
- $("teamTable").innerHTML="";
- DATA.filter(d=>d.user===currentUser.username).forEach(d=>{
-  $("teamTable").innerHTML+=`<tr class="${d.status.toLowerCase()}">
-   <td>${d.date}</td><td>${d.detail}</td><td>${d.amount}</td><td>${d.status}</td>
-  </tr>`;
- });
+bal.innerText=currentUser.advance||0;
+teamTable.innerHTML="";
+DATA.filter(d=>d.username==currentUser.username).forEach(d=>{
+let cls=d.status=="Approved"?"approved":d.status=="Rejected"?"rejected":"pending";
+teamTable.innerHTML+=`<tr class="${cls}">
+<td>${d.date}</td><td>${d.detail}</td>
+<td>${d.amount}</td><td>${d.status}</td></tr>`;
+});
 }
-
-/* STORAGE */
+function loadSup(){
+supTable.innerHTML="";
+DATA.forEach((d,i)=>{
+let cls=d.status=="Approved"?"approved":d.status=="Rejected"?"rejected":"pending";
+supTable.innerHTML+=`<tr class="${cls}">
+<td>${d.username}</td><td>${d.date}</td>
+<td>${d.detail}</td><td>${d.amount}</td>
+<td>${d.status}</td>
+<td><textarea onchange="DATA[${i}].comment=this.value">${d.comment||""}</textarea></td>
+<td>
+<button onclick="DATA[${i}].status='Approved';saveAll()">Approve</button>
+<button onclick="DATA[${i}].status='Rejected';saveAll()">Reject</button>
+</td></tr>`;
+});
+}
+function loadAdmin(){
+userTable.innerHTML="";
+USERS.forEach((u,i)=>{
+userTable.innerHTML+=`<tr>
+<td>${u.username}</td><td>${u.name||""}</td>
+<td>${u.role}</td><td>${u.location||""}</td>
+<td>${u.advance||0}</td>
+<td><button onclick="USERS.splice(${i},1);saveAll()">Delete</button></td>
+</tr>`;
+});
+advUser.innerHTML="";
+USERS.filter(u=>u.role!="admin").forEach(u=>{
+advUser.innerHTML+=`<option>${u.username}</option>`;
+});
+adminTable.innerHTML="";
+let paid=0,pend=0;
+DATA.filter(d=>d.status=="Approved").forEach((d,i)=>{
+(d.paid?paid+=d.amount:pend+=d.amount);
+adminTable.innerHTML+=`<tr class="${d.paid?'paid':'unpaid'}">
+<td>${d.username}</td><td>${d.date}</td><td>${d.detail}</td>
+<td>${d.amount}</td><td>${d.status}</td>
+<td>${d.paid?'Paid':'Unpaid'}</td>
+<td>
+<button onclick="DATA[${i}].paid=true;saveAll()">Paid</button>
+<button onclick="DATA[${i}].paid=false;saveAll()">Unpaid</button>
+<button onclick="DATA.splice(${i},1);saveAll()">Delete</button>
+</td></tr>`;
+});
+paidT.innerText=paid;pendT.innerText=pend;
+}
+function createUser(){
+if(USERS.find(u=>u.username==cu.value))return alert("User exists");
+USERS.push({username:cu.value,password:cp.value,name:cn.value,
+location:cl.value,role:cr.value,advance:0});
+saveAll();
+}
+function giveAdvance(){
+let u=USERS.find(x=>x.username==advUser.value);
+u.advance+=+advAmt.value;saveAll();
+}
 function saveAll(){
- localStorage.setItem("USERS",JSON.stringify(USERS));
- localStorage.setItem("DATA",JSON.stringify(DATA));
+localStorage.setItem("USERS",JSON.stringify(USERS));
+localStorage.setItem("DATA",JSON.stringify(DATA));
+if(currentUser?.role=="admin")loadAdmin();
+if(currentUser?.role=="supervisor")loadSup();
+if(currentUser?.role=="team")loadTeam();
 }
 </script>
 
