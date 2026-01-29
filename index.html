@@ -173,22 +173,24 @@ let USERS = JSON.parse(localStorage.getItem("USERS")) || [
  {username:"sup",password:"sup",role:"supervisor",name:"Supervisor",advance:0},
  {username:"team",password:"team",role:"team",name:"Team",location:"Site-1",advance:0}
 ];
+
 let DATA = JSON.parse(localStorage.getItem("DATA")) || [];
 let currentUser=null;
 
-/* LOGIN */
+/* ---------- LOGIN ---------- */
 function login(){
- let u=USERS.find(x=>x.username===$("luser").value && x.password===$("lpass").value);
- if(!u) return alert("Wrong Login");
+ let u = USERS.find(x=>x.username===$("luser").value && x.password===$("lpass").value);
+ if(!u){ alert("Wrong Login"); return; }
  currentUser=u;
  $("loginBox").classList.add("hidden");
+
  if(u.role==="admin"){ $("adminPanel").classList.remove("hidden"); loadAdmin(); }
  if(u.role==="supervisor"){ $("supervisorPanel").classList.remove("hidden"); loadSup(); }
  if(u.role==="team"){ $("teamPanel").classList.remove("hidden"); initTeam(); }
 }
 function logout(){ location.reload(); }
 
-/* TEAM */
+/* ---------- TEAM ---------- */
 function toggleBox(id){
  $("convBox").classList.add("hidden");
  $("expBox").classList.add("hidden");
@@ -201,64 +203,123 @@ function initTeam(){
  $("cdate").valueAsDate=$("edate").valueAsDate=new Date();
  loadTeam();
 }
-function calcConv(){ $("ctotal").value=(+$("cmem").value||0)*(+$("cper").value||0); }
-
+function calcConv(){
+ $("ctotal").value=(+$("cmem").value||0)*(+$("cper").value||0);
+}
 function saveConveyance(){
  let amt=+$("ctotal").value;
  if(!amt) return alert("Amount required");
- DATA.push({username:currentUser.username,date:$("cdate").value,
- detail:`Conveyance ${$("cmode").value} ${$("cfrom").value} to ${$("cto").value}`,
- amount:amt,status:"Pending"});
+ DATA.push({
+  username:currentUser.username,
+  date:$("cdate").value,
+  detail:`Conveyance ${$("cmode").value} ${$("cfrom").value} to ${$("cto").value}`,
+  amount:amt,status:"Pending"
+ });
  currentUser.advance-=amt;
  saveAll(); loadTeam();
 }
 function saveExpense(){
  let amt=+$("eamt").value;
  if(!amt) return alert("Amount required");
- DATA.push({username:currentUser.username,date:$("edate").value,
- detail:`Expense (${$("ecat").value}) - ${$("edesc").value}`,
- amount:amt,status:"Pending"});
+ DATA.push({
+  username:currentUser.username,
+  date:$("edate").value,
+  detail:`Expense (${$("ecat").value}) - ${$("edesc").value}`,
+  amount:amt,status:"Pending"
+ });
  currentUser.advance-=amt;
  saveAll(); loadTeam();
 }
 function loadTeam(){
  $("teamTable").innerHTML="";
  DATA.filter(d=>d.username===currentUser.username).forEach(d=>{
-  $("teamTable").innerHTML+=`<tr class="pending">
-  <td>${d.date}</td><td>${d.detail}</td><td>${d.amount}</td><td>${d.status}</td></tr>`;
+  $("teamTable").innerHTML+=`<tr class="${d.status.toLowerCase()}">
+   <td>${d.date}</td><td>${d.detail}</td><td>${d.amount}</td><td>${d.status}</td>
+  </tr>`;
  });
 }
 
-/* ===== FIXED SUPERVISOR LOGIC ===== */
+/* ---------- SUPERVISOR ---------- */
 function loadSup(){
  $("supTable").innerHTML="";
  DATA.forEach((d,i)=>{
-  $("supTable").innerHTML+=`<tr>
-  <td>${d.username}</td><td>${d.date}</td><td>${d.detail}</td>
-  <td>${d.amount}</td><td>${d.status}</td>
-  <td><textarea onchange="updateComment(${i},this.value)">${d.comment||""}</textarea></td>
-  <td>
-   <button onclick="approveEntry(${i})">Approve</button>
-   <button onclick="rejectEntry(${i})">Reject</button>
-  </td></tr>`;
+  $("supTable").innerHTML+=`<tr class="${d.status.toLowerCase()}">
+   <td>${d.username}</td><td>${d.date}</td><td>${d.detail}</td>
+   <td>${d.amount}</td><td>${d.status}</td>
+   <td><textarea onchange="DATA[${i}].comment=this.value;saveAll()">${d.comment||""}</textarea></td>
+   <td>
+    <button onclick="approveEntry(${i})">Approve</button>
+    <button onclick="rejectEntry(${i})">Reject</button>
+   </td>
+  </tr>`;
  });
 }
 function approveEntry(i){
  DATA[i].status="Approved";
- saveAll(); loadSup();
+ saveAll(); loadSup(); if(currentUser.role==="admin") loadAdmin();
 }
 function rejectEntry(i){
  DATA[i].status="Rejected";
- saveAll(); loadSup();
-}
-function updateComment(i,val){
- DATA[i].comment=val;
- saveAll();
+ saveAll(); loadSup(); if(currentUser.role==="admin") loadAdmin();
 }
 
-/* ADMIN */
-function loadAdmin(){}
+/* ---------- ADMIN ---------- */
+function loadAdmin(){
+ $("userTable").innerHTML="";
+ USERS.forEach((u,i)=>{
+  $("userTable").innerHTML+=`<tr>
+   <td>${u.username}</td><td>${u.name||""}</td>
+   <td>${u.role}</td><td>${u.location||""}</td>
+   <td>${u.advance||0}</td>
+   <td><button onclick="USERS.splice(${i},1);saveAll();loadAdmin()">Delete</button></td>
+  </tr>`;
+ });
 
+ $("advUser").innerHTML="";
+ USERS.filter(u=>u.role!=="admin").forEach(u=>{
+  $("advUser").innerHTML+=`<option>${u.username}</option>`;
+ });
+
+ $("adminTable").innerHTML="";
+ let paid=0,pend=0;
+ DATA.filter(d=>d.status==="Approved").forEach((d,i)=>{
+  d.paid?paid+=d.amount:pend+=d.amount;
+  $("adminTable").innerHTML+=`<tr class="${d.paid?'paid':'unpaid'}">
+   <td>${d.username}</td><td>${d.date}</td><td>${d.detail}</td>
+   <td>${d.amount}</td><td>${d.status}</td>
+   <td>${d.paid?'Paid':'Unpaid'}</td>
+   <td>
+    <button onclick="DATA[${i}].paid=true;saveAll();loadAdmin()">Paid</button>
+    <button onclick="DATA[${i}].paid=false;saveAll();loadAdmin()">Unpaid</button>
+   </td>
+  </tr>`;
+ });
+ $("paidT").innerText=paid;
+ $("pendT").innerText=pend;
+}
+
+function createUser(){
+ if(USERS.find(u=>u.username===$("cu").value)) return alert("User exists");
+ USERS.push({
+  username:$("cu").value,password:$("cp").value,
+  name:$("cn").value,location:$("cl").value,
+  role:$("cr").value,advance:0
+ });
+ saveAll(); loadAdmin();
+}
+function giveAdvance(){
+ let u=USERS.find(x=>x.username===$("advUser").value);
+ u.advance+=+$("advAmt").value;
+ saveAll(); loadAdmin();
+}
+function changeAdminPassword(){
+ if($("oldPass").value!==currentUser.password) return alert("Old password wrong");
+ if($("newPass").value!==$("cnfPass").value) return alert("Password not matched");
+ currentUser.password=$("newPass").value;
+ saveAll(); alert("Password changed");
+}
+
+/* ---------- SAVE ---------- */
 function saveAll(){
  localStorage.setItem("USERS",JSON.stringify(USERS));
  localStorage.setItem("DATA",JSON.stringify(DATA));
