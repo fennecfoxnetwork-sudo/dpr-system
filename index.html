@@ -69,6 +69,11 @@ Amount
 </table>
 </div>
 
+<!-- ✅ EXCEL DOWNLOAD (ONLY ADDITION) -->
+<div class="box">
+<button onclick="downloadExcel()">⬇ Download Excel</button>
+</div>
+
 <button onclick="logout()">Logout</button>
 </div>
 
@@ -101,7 +106,7 @@ let USERS = JSON.parse(localStorage.getItem("USERS")) || [
 
 let currentUser = JSON.parse(localStorage.getItem("SESSION")) || null;
 
-/* ================= AUTO LOGIN ================= */
+/* ================= AUTO LOGIN (NO LOGOUT ON REFRESH) ================= */
 window.onload = function(){
  if(currentUser){
   document.getElementById("loginBox").classList.add("hidden");
@@ -173,7 +178,7 @@ function createUser(){
  alert("User created");
 }
 
-/* ================= GIVE ADVANCE (FIXED) ================= */
+/* ================= GIVE ADVANCE ================= */
 function giveAdvance(){
  const advUser = document.getElementById("advUser");
  const advAmt  = document.getElementById("advAmt");
@@ -202,6 +207,20 @@ function saveAll(){
 
  if(currentUser.role==="admin") loadAdmin();
  if(currentUser.role==="team") initTeam();
+}
+
+/* ================= EXCEL DOWNLOAD ================= */
+function downloadExcel(){
+ let csv="Username,Name,Role,Location,Advance\n";
+ USERS.forEach(u=>{
+  csv+=`${u.username},${u.name||""},${u.role},${u.location||""},${u.advance}\n`;
+ });
+
+ let blob=new Blob([csv],{type:"text/csv"});
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="DPR_USERS.xlsx";
+ a.click();
 }
 </script>
 
