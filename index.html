@@ -37,6 +37,14 @@ Password <input id="lpass" type="password">
 <h2 class="admin">ADMIN PANEL</h2>
 
 <div class="box">
+<h3>Change Admin Password</h3>
+Old Password <input type="password" id="oldPass">
+New Password <input type="password" id="newPass">
+Confirm New Password <input type="password" id="cnfPass">
+<button onclick="changeAdminPassword()">Change Password</button>
+</div>
+
+<div class="box">
 <h3>Create User</h3>
 Username <input id="cu">
 Password <input id="cp">
@@ -61,15 +69,31 @@ Role
 </div>
 
 <div class="box">
+<h3>Give Advance</h3>
+User <select id="advUser"></select>
+Amount <input type="number" id="advAmt">
+<button onclick="giveAdvance()">Give Advance</button>
+</div>
+
+<div class="box">
 <h3>Approved Entries</h3>
 <table>
 <thead>
 <tr>
-<th>User</th><th>Date</th><th>Detail</th><th>Amount</th><th>Status</th>
+<th>User</th><th>Date</th><th>Detail</th><th>Amount</th>
+<th>Status</th><th>Payment</th><th>Action</th>
 </tr>
 </thead>
 <tbody id="adminTable"></tbody>
 </table>
+</div>
+
+<div class="box">
+<b>Total Paid:</b> ₹<span id="paidT">0</span> |
+<b>Total Pending:</b> ₹<span id="pendT">0</span>
+</div>
+
+<div class="box">
 <button onclick="downloadExcel()">⬇ Download Excel</button>
 </div>
 
@@ -83,7 +107,7 @@ Role
 <thead>
 <tr>
 <th>User</th><th>Date</th><th>Detail</th>
-<th>Amount</th><th>Status</th><th>Action</th>
+<th>Amount</th><th>Status</th><th>Comment</th><th>Action</th>
 </tr>
 </thead>
 <tbody id="supTable"></tbody>
@@ -97,15 +121,39 @@ Role
 
 <div class="box">
 <b>Name:</b> <span id="tname"></span><br>
-<b>Project:</b> <span id="tloc"></span>
+<b>Project:</b> <span id="tloc"></span><br>
+<b>Advance Balance:</b> ₹<span id="bal"></span>
 </div>
 
 <div class="box">
+<button onclick="toggleBox('convBox')">➕ CONVEYANCE</button>
+<button onclick="toggleBox('expBox')">➕ EXPENSE</button>
+</div>
+
+<div class="box hidden" id="convBox">
+<h3>Conveyance</h3>
+Date <input type="date" id="cdate">
+From <input id="cfrom">
+To <input id="cto">
+Transport
+<select id="cmode">
+<option>Bus</option><option>Train</option><option>Bike</option>
+<option>Flight</option><option>Taxi</option><option>Auto</option>
+</select>
+Members <input type="number" id="cmem" value="1" oninput="calcConv()">
+Amount / Person <input type="number" id="cper" oninput="calcConv()">
+Total Amount <input type="number" id="ctotal">
+<button onclick="saveConveyance()">Submit Conveyance</button>
+</div>
+
+<div class="box hidden" id="expBox">
 <h3>Expense</h3>
 Date <input type="date" id="edate">
+Category
+<select id="ecat"><option>Office</option><option>Other</option></select>
 Description <input id="edesc">
 Amount <input type="number" id="eamt">
-<button onclick="saveExpense()">Submit</button>
+<button onclick="saveExpense()">Submit Expense</button>
 </div>
 
 <div class="box">
@@ -126,137 +174,167 @@ const SHEET_URL="https://script.google.com/macros/s/AKfycbxG6Di2BRNd1cieq0rj12DT
 
 let USERS=JSON.parse(localStorage.getItem("USERS"))||[
 {username:"admin",password:"admin",role:"admin",name:"Admin"},
-{username:"sup",password:"sup",role:"supervisor",name:"Supervisor"},
-{username:"team",password:"team",role:"team",name:"Team",location:"Site-1"}
+{username:"sup",password:"sup",role:"supervisor",name:"Supervisor",advance:0},
+{username:"team",password:"team",role:"team",name:"Team",location:"Site-1",advance:0}
 ];
-
 let DATA=JSON.parse(localStorage.getItem("DATA"))||[];
-let currentUser=JSON.parse(localStorage.getItem("CURRENT_USER"))||null;
+let currentUser=JSON.parse(localStorage.getItem("SESSION"))||null;
 
-/* ===== AUTO LOGIN ===== */
+/* ===== AUTO LOGIN AFTER REFRESH ===== */
+window.onload=()=>{
 if(currentUser){
 loginBox.classList.add("hidden");
-openPanel(currentUser);
+if(currentUser.role=="admin"){adminPanel.classList.remove("hidden");loadAdmin();}
+if(currentUser.role=="supervisor"){supervisorPanel.classList.remove("hidden");loadSup();}
+if(currentUser.role=="team"){teamPanel.classList.remove("hidden");initTeam();}
+}
 }
 
-/* ===== LOGIN ===== */
 function login(){
-let u=USERS.find(x=>x.username===luser.value && x.password===lpass.value);
+let u=USERS.find(x=>x.username==luser.value && x.password==lpass.value);
 if(!u)return alert("Wrong Login");
 currentUser=u;
-localStorage.setItem("CURRENT_USER",JSON.stringify(u));
-loginBox.classList.add("hidden");
-openPanel(u);
-}
-
-function logout(){
-localStorage.removeItem("CURRENT_USER");
+localStorage.setItem("SESSION",JSON.stringify(u));
 location.reload();
 }
 
-function openPanel(u){
-if(u.role==="admin"){adminPanel.classList.remove("hidden");loadAdmin();}
-if(u.role==="supervisor"){supervisorPanel.classList.remove("hidden");loadSup();}
-if(u.role==="team"){teamPanel.classList.remove("hidden");initTeam();}
+function logout(){
+localStorage.removeItem("SESSION");
+location.reload();
 }
 
-/* ===== TEAM ===== */
-function initTeam(){
-tname.innerText=currentUser.name;
-tloc.innerText=currentUser.location;
-edate.valueAsDate=new Date();
-loadTeam();
-}
-
-function saveExpense(){
-let e={
-timestamp:new Date().toISOString(),
-username:currentUser.username,
-role:currentUser.role,
-date:edate.value,
-detail:edesc.value,
-amount:eamt.value,
-status:"Pending"
-};
-DATA.push(e);
-saveAll();
-sendToSheet(e);
-}
-
-function loadTeam(){
-teamTable.innerHTML="";
-DATA.filter(d=>d.username===currentUser.username).forEach(d=>{
-let c=d.status==="Approved"?"approved":"pending";
-teamTable.innerHTML+=`<tr class="${c}">
-<td>${d.date}</td><td>${d.detail}</td><td>${d.amount}</td><td>${d.status}</td></tr>`;
+/* ===== GOOGLE SHEET PUSH ===== */
+function pushToSheet(row){
+fetch(SHEET_URL,{
+method:"POST",
+body:JSON.stringify(row),
+headers:{"Content-Type":"application/json"}
 });
 }
 
-/* ===== SUPERVISOR ===== */
+function changeAdminPassword(){
+if(oldPass.value!==currentUser.password)return alert("Old password wrong");
+if(newPass.value!==cnfPass.value)return alert("Password not matched");
+currentUser.password=newPass.value;
+saveAll();
+alert("Password changed");
+}
+
+function toggleBox(id){
+convBox.classList.add("hidden");
+expBox.classList.add("hidden");
+document.getElementById(id).classList.remove("hidden");
+}
+
+function initTeam(){
+tname.innerText=currentUser.name;
+tloc.innerText=currentUser.location;
+bal.innerText=currentUser.advance||0;
+cdate.valueAsDate=edate.valueAsDate=new Date();
+loadTeam();
+}
+
+function calcConv(){ctotal.value=(+cmem.value||0)*(+cper.value||0);}
+
+function saveConveyance(){
+let amt=+ctotal.value;
+let row={
+timestamp:new Date().toLocaleString(),
+username:currentUser.username,
+role:currentUser.role,
+date:cdate.value,
+detail:`Conveyance ${cmode.value} ${cfrom.value} to ${cto.value}`,
+status:"Pending",
+payment:amt
+};
+DATA.push({...row});
+currentUser.advance-=amt;
+pushToSheet(row);
+saveAll();
+}
+
+function saveExpense(){
+let amt=+eamt.value;
+let row={
+timestamp:new Date().toLocaleString(),
+username:currentUser.username,
+role:currentUser.role,
+date:edate.value,
+detail:`Expense (${ecat.value}) - ${edesc.value}`,
+status:"Pending",
+payment:amt
+};
+DATA.push({...row});
+currentUser.advance-=amt;
+pushToSheet(row);
+saveAll();
+}
+
+function loadTeam(){
+bal.innerText=currentUser.advance||0;
+teamTable.innerHTML="";
+DATA.filter(d=>d.username==currentUser.username).forEach(d=>{
+teamTable.innerHTML+=`<tr class="pending">
+<td>${d.date}</td><td>${d.detail}</td>
+<td>${d.payment}</td><td>${d.status}</td></tr>`;
+});
+}
+
 function loadSup(){
 supTable.innerHTML="";
-DATA.filter(d=>d.status==="Pending").forEach((d,i)=>{
-supTable.innerHTML+=`<tr class="pending">
-<td>${d.username}</td><td>${d.date}</td><td>${d.detail}</td><td>${d.amount}</td>
+DATA.forEach((d,i)=>{
+supTable.innerHTML+=`<tr>
+<td>${d.username}</td><td>${d.date}</td>
+<td>${d.detail}</td><td>${d.payment}</td>
 <td>${d.status}</td>
+<td><textarea></textarea></td>
 <td>
-<button onclick="approve(${i})">Approve</button>
-<button onclick="reject(${i})">Reject</button>
+<button onclick="DATA[${i}].status='Approved';saveAll()">Approve</button>
+<button onclick="DATA[${i}].status='Rejected';saveAll()">Reject</button>
 </td></tr>`;
 });
 }
 
-function approve(i){DATA[i].status="Approved";saveAll();}
-function reject(i){DATA[i].status="Rejected";saveAll();}
-
-/* ===== ADMIN ===== */
 function loadAdmin(){
 userTable.innerHTML="";
 USERS.forEach((u,i)=>{
-if(u.role!=="admin"){
 userTable.innerHTML+=`<tr>
-<td>${u.username}</td><td>${u.name}</td><td>${u.role}</td><td>${u.location||""}</td>
-<td>0</td>
+<td>${u.username}</td><td>${u.name||""}</td>
+<td>${u.role}</td><td>${u.location||""}</td>
+<td>${u.advance||0}</td>
 <td><button onclick="USERS.splice(${i},1);saveAll()">Delete</button></td>
 </tr>`;
-}
-});
-
-adminTable.innerHTML="";
-DATA.filter(d=>d.status==="Approved").forEach(d=>{
-adminTable.innerHTML+=`<tr class="approved">
-<td>${d.username}</td><td>${d.date}</td><td>${d.detail}</td><td>${d.amount}</td><td>${d.status}</td>
-</tr>`;
 });
 }
 
-/* ===== GOOGLE SHEET ===== */
-function sendToSheet(e){
-fetch(SHEET_URL,{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify(e)
-});
+function createUser(){
+USERS.push({username:cu.value,password:cp.value,name:cn.value,location:cl.value,role:cr.value,advance:0});
+saveAll();
 }
 
-/* ===== EXCEL ===== */
+function giveAdvance(){
+let u=USERS.find(x=>x.username==advUser.value);
+u.advance+=+advAmt.value;
+saveAll();
+}
+
+/* ===== EXCEL DOWNLOAD ===== */
 function downloadExcel(){
-let rows=[["username","date","detail","amount","status"]];
-DATA.filter(d=>d.status==="Approved").forEach(d=>{
-rows.push([d.username,d.date,d.detail,d.amount,d.status]);
+let csv="Username,Date,Detail,Amount,Status\n";
+DATA.forEach(d=>{
+csv+=`${d.username},${d.date},"${d.detail}",${d.payment},${d.status}\n`;
 });
-let csv=rows.map(r=>r.join(",")).join("\n");
+let blob=new Blob([csv],{type:"text/csv"});
 let a=document.createElement("a");
-a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+a.href=URL.createObjectURL(blob);
 a.download="DPR_DATA.csv";
 a.click();
 }
 
-/* ===== SAVE ===== */
 function saveAll(){
 localStorage.setItem("USERS",JSON.stringify(USERS));
 localStorage.setItem("DATA",JSON.stringify(DATA));
-if(currentUser)openPanel(currentUser);
+localStorage.setItem("SESSION",JSON.stringify(currentUser));
 }
 </script>
 
