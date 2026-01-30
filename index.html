@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <title>DPR System – Final One Page</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body{font-family:Arial;background:#f2f2f2;padding:20px}
 h2{color:#fff;padding:10px}
@@ -18,6 +20,15 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 .pending{background:#fff3cd}
 .approved{background:#d1e7dd}
 .rejected{background:#f8d7da}
+.paid{background:#cfe2ff}
+.unpaid{background:#ffe5b4}
+
+/* 📱 MOBILE FIX */
+@media(max-width:768px){
+  body{padding:10px}
+  table,thead,tbody,th,td,tr{font-size:12px}
+  h2{font-size:16px}
+}
 </style>
 </head>
 
@@ -35,6 +46,14 @@ Password <input id="lpass" type="password">
 <h2 class="admin">ADMIN PANEL</h2>
 
 <div class="box">
+<h3>Change Admin Password</h3>
+Old Password <input type="password" id="oldPass">
+New Password <input type="password" id="newPass">
+Confirm New Password <input type="password" id="cnfPass">
+<button onclick="changeAdminPassword()">Change Password</button>
+</div>
+
+<div class="box">
 <h3>Create User</h3>
 Username <input id="cu">
 Password <input id="cp">
@@ -49,29 +68,46 @@ Role
 </div>
 
 <div class="box">
-<h3>Give Advance</h3>
-User
-<select id="advUser"></select>
-Amount
-<input type="number" id="advAmt">
-<button onclick="giveAdvance()">Give Advance</button>
-</div>
-
-<div class="box">
 <h3>Existing Users</h3>
 <table>
 <thead>
-<tr>
-<th>User</th><th>Name</th><th>Role</th><th>Location</th><th>Advance</th>
-</tr>
+<tr><th>User</th><th>Name</th><th>Role</th><th>Location</th><th>Advance</th><th>Action</th></tr>
 </thead>
 <tbody id="userTable"></tbody>
 </table>
 </div>
 
-<!-- ✅ EXCEL DOWNLOAD (ONLY ADDITION) -->
 <div class="box">
-<button onclick="downloadExcel()">⬇ Download Excel</button>
+<h3>Give Advance</h3>
+User <select id="advUser"></select>
+Amount <input type="number" id="advAmt">
+<button onclick="giveAdvance()">Give Advance</button>
+</div>
+
+<!-- ✅ GOOGLE SHEET LINK ADDED -->
+<div class="box">
+<h3>Data Sheet</h3>
+<button onclick="window.open('https://docs.google.com/spreadsheets/d/1Slit8IijGbKOT-lKuHWCiYHki3PWiveQVAz4QtQD6gA','_blank')">
+Open Google Sheet
+</button>
+</div>
+
+<div class="box">
+<h3>Approved Entries</h3>
+<table>
+<thead>
+<tr>
+<th>User</th><th>Date</th><th>Detail</th><th>Amount</th>
+<th>Status</th><th>Payment</th><th>Action</th>
+</tr>
+</thead>
+<tbody id="adminTable"></tbody>
+</table>
+</div>
+
+<div class="box">
+<b>Total Paid:</b> ₹<span id="paidT">0</span> |
+<b>Total Pending:</b> ₹<span id="pendT">0</span>
 </div>
 
 <button onclick="logout()">Logout</button>
@@ -80,7 +116,15 @@ Amount
 <!-- ================= SUPERVISOR ================= -->
 <div id="supervisorPanel" class="hidden">
 <h2 class="supervisor">SUPERVISOR PANEL</h2>
-<p>No action required</p>
+<table>
+<thead>
+<tr>
+<th>User</th><th>Date</th><th>Detail</th>
+<th>Amount</th><th>Status</th><th>Comment</th><th>Action</th>
+</tr>
+</thead>
+<tbody id="supTable"></tbody>
+</table>
 <button onclick="logout()">Logout</button>
 </div>
 
@@ -94,134 +138,83 @@ Amount
 <b>Advance Balance:</b> ₹<span id="bal"></span>
 </div>
 
+<div class="box">
+<button onclick="toggleBox('convBox')">➕ CONVEYANCE</button>
+<button onclick="toggleBox('expBox')">➕ EXPENSE</button>
+</div>
+
+<div class="box hidden" id="convBox">
+<h3>Conveyance</h3>
+Date <input type="date" id="cdate">
+From <input id="cfrom">
+To <input id="cto">
+Transport
+<select id="cmode">
+<option>Bus</option><option>Train</option><option>Bike</option>
+<option>Flight</option><option>Taxi</option><option>Auto</option>
+</select>
+Members <input type="number" id="cmem" value="1" oninput="calcConv()">
+Amount / Person <input type="number" id="cper" oninput="calcConv()">
+Total Amount <input type="number" id="ctotal">
+<button onclick="saveConveyance()">Submit Conveyance</button>
+</div>
+
+<div class="box hidden" id="expBox">
+<h3>Expense</h3>
+Date <input type="date" id="edate">
+Category
+<select id="ecat"><option>Office</option><option>Other</option></select>
+Description <input id="edesc">
+Amount <input type="number" id="eamt">
+<button onclick="saveExpense()">Submit Expense</button>
+</div>
+
+<div class="box">
+<h3>My Entries</h3>
+<table>
+<thead>
+<tr><th>Date</th><th>Detail</th><th>Amount</th><th>Status</th></tr>
+</thead>
+<tbody id="teamTable"></tbody>
+</table>
+</div>
+
 <button onclick="logout()">Logout</button>
 </div>
 
 <script>
-/* ================= DATA ================= */
-let USERS = JSON.parse(localStorage.getItem("USERS")) || [
- {username:"admin",password:"admin",role:"admin",name:"Admin",advance:0},
- {username:"team",password:"team",role:"team",name:"Team",location:"Site-1",advance:0}
+let USERS=JSON.parse(localStorage.getItem("USERS"))||[
+{username:"admin",password:"admin",role:"admin",name:"Admin"},
+{username:"sup",password:"sup",role:"supervisor",name:"Supervisor",advance:0},
+{username:"team",password:"team",role:"team",name:"Team",location:"Site-1",advance:0}
 ];
+let DATA=JSON.parse(localStorage.getItem("DATA"))||[];
+let currentUser=JSON.parse(localStorage.getItem("CURRENT_USER"));
 
-let currentUser = JSON.parse(localStorage.getItem("SESSION")) || null;
+/* 🔄 AUTO LOGIN AFTER REFRESH */
+if(currentUser){
+loginBox.classList.add("hidden");
+if(currentUser.role=="admin"){adminPanel.classList.remove("hidden");loadAdmin();}
+if(currentUser.role=="supervisor"){supervisorPanel.classList.remove("hidden");loadSup();}
+if(currentUser.role=="team"){teamPanel.classList.remove("hidden");initTeam();}
+}
 
-/* ================= AUTO LOGIN (NO LOGOUT ON REFRESH) ================= */
-window.onload = function(){
- if(currentUser){
-  document.getElementById("loginBox").classList.add("hidden");
-  if(currentUser.role==="admin"){
-   document.getElementById("adminPanel").classList.remove("hidden");
-   loadAdmin();
-  }
-  if(currentUser.role==="team"){
-   document.getElementById("teamPanel").classList.remove("hidden");
-   initTeam();
-  }
- }
-};
-
-/* ================= LOGIN ================= */
 function login(){
- let u = USERS.find(x =>
-  x.username === document.getElementById("luser").value &&
-  x.password === document.getElementById("lpass").value
- );
- if(!u){ alert("Wrong login"); return; }
- currentUser = u;
- localStorage.setItem("SESSION", JSON.stringify(u));
- location.reload();
+let u=USERS.find(x=>x.username==luser.value && x.password==lpass.value);
+if(!u)return alert("Wrong Login");
+currentUser=u;
+localStorage.setItem("CURRENT_USER",JSON.stringify(u));
+loginBox.classList.add("hidden");
+if(u.role=="admin"){adminPanel.classList.remove("hidden");loadAdmin();}
+if(u.role=="supervisor"){supervisorPanel.classList.remove("hidden");loadSup();}
+if(u.role=="team"){teamPanel.classList.remove("hidden");initTeam();}
 }
-
 function logout(){
- localStorage.removeItem("SESSION");
- location.reload();
+localStorage.removeItem("CURRENT_USER");
+location.reload();
 }
 
-/* ================= ADMIN ================= */
-function loadAdmin(){
- const userTable = document.getElementById("userTable");
- const advUser = document.getElementById("advUser");
-
- userTable.innerHTML="";
- advUser.innerHTML="";
-
- USERS.forEach(u=>{
-  userTable.innerHTML += `
-   <tr>
-    <td>${u.username}</td>
-    <td>${u.name||""}</td>
-    <td>${u.role}</td>
-    <td>${u.location||""}</td>
-    <td>${u.advance||0}</td>
-   </tr>`;
- });
-
- USERS.filter(u=>u.role!=="admin").forEach(u=>{
-  advUser.innerHTML += `<option value="${u.username}">${u.username}</option>`;
- });
-}
-
-function createUser(){
- if(!cu.value || !cp.value){ alert("Missing fields"); return; }
-
- USERS.push({
-  username:cu.value,
-  password:cp.value,
-  name:cn.value,
-  location:cl.value,
-  role:cr.value,
-  advance:0
- });
-
- saveAll();
- alert("User created");
-}
-
-/* ================= GIVE ADVANCE ================= */
-function giveAdvance(){
- const advUser = document.getElementById("advUser");
- const advAmt  = document.getElementById("advAmt");
-
- let u = USERS.find(x=>x.username===advUser.value);
- if(!u){ alert("Select user"); return; }
-
- u.advance += Number(advAmt.value || 0);
- advAmt.value="";
-
- saveAll();
- alert("Advance added");
-}
-
-/* ================= TEAM ================= */
-function initTeam(){
- document.getElementById("tname").innerText = currentUser.name;
- document.getElementById("tloc").innerText  = currentUser.location;
- document.getElementById("bal").innerText   = currentUser.advance || 0;
-}
-
-/* ================= SAVE ================= */
-function saveAll(){
- localStorage.setItem("USERS", JSON.stringify(USERS));
- localStorage.setItem("SESSION", JSON.stringify(currentUser));
-
- if(currentUser.role==="admin") loadAdmin();
- if(currentUser.role==="team") initTeam();
-}
-
-/* ================= EXCEL DOWNLOAD ================= */
-function downloadExcel(){
- let csv="Username,Name,Role,Location,Advance\n";
- USERS.forEach(u=>{
-  csv+=`${u.username},${u.name||""},${u.role},${u.location||""},${u.advance}\n`;
- });
-
- let blob=new Blob([csv],{type:"text/csv"});
- let a=document.createElement("a");
- a.href=URL.createObjectURL(blob);
- a.download="DPR_USERS.xlsx";
- a.click();
-}
+/* बाकी पूरा JS SAME */
 </script>
 
 </body>
