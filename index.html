@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>DPR System – Final One Page</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -23,11 +22,9 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 .paid{background:#cfe2ff}
 .unpaid{background:#ffe5b4}
 
-/* 📱 MOBILE FIX */
 @media(max-width:768px){
   body{padding:10px}
-  table,thead,tbody,th,td,tr{font-size:12px}
-  h2{font-size:16px}
+  table{font-size:12px}
 }
 </style>
 </head>
@@ -46,50 +43,8 @@ Password <input id="lpass" type="password">
 <h2 class="admin">ADMIN PANEL</h2>
 
 <div class="box">
-<h3>Change Admin Password</h3>
-Old Password <input type="password" id="oldPass">
-New Password <input type="password" id="newPass">
-Confirm New Password <input type="password" id="cnfPass">
-<button onclick="changeAdminPassword()">Change Password</button>
-</div>
-
-<div class="box">
-<h3>Create User</h3>
-Username <input id="cu">
-Password <input id="cp">
-Name <input id="cn">
-Location <input id="cl">
-Role
-<select id="cr">
-<option value="team">Team</option>
-<option value="supervisor">Supervisor</option>
-</select>
-<button onclick="createUser()">Create User</button>
-</div>
-
-<div class="box">
-<h3>Existing Users</h3>
-<table>
-<thead>
-<tr><th>User</th><th>Name</th><th>Role</th><th>Location</th><th>Advance</th><th>Action</th></tr>
-</thead>
-<tbody id="userTable"></tbody>
-</table>
-</div>
-
-<div class="box">
-<h3>Give Advance</h3>
-User <select id="advUser"></select>
-Amount <input type="number" id="advAmt">
-<button onclick="giveAdvance()">Give Advance</button>
-</div>
-
-<!-- ✅ GOOGLE SHEET LINK ADDED -->
-<div class="box">
-<h3>Data Sheet</h3>
-<button onclick="window.open('https://docs.google.com/spreadsheets/d/1Slit8IijGbKOT-lKuHWCiYHki3PWiveQVAz4QtQD6gA','_blank')">
-Open Google Sheet
-</button>
+<h3>Save Approved Data</h3>
+<button onclick="saveToSheet()">Save Approved Entries to Google Sheet</button>
 </div>
 
 <div class="box">
@@ -103,11 +58,6 @@ Open Google Sheet
 </thead>
 <tbody id="adminTable"></tbody>
 </table>
-</div>
-
-<div class="box">
-<b>Total Paid:</b> ₹<span id="paidT">0</span> |
-<b>Total Pending:</b> ₹<span id="pendT">0</span>
 </div>
 
 <button onclick="logout()">Logout</button>
@@ -144,59 +94,37 @@ Open Google Sheet
 </div>
 
 <div class="box hidden" id="convBox">
-<h3>Conveyance</h3>
 Date <input type="date" id="cdate">
 From <input id="cfrom">
 To <input id="cto">
-Transport
-<select id="cmode">
-<option>Bus</option><option>Train</option><option>Bike</option>
-<option>Flight</option><option>Taxi</option><option>Auto</option>
-</select>
 Members <input type="number" id="cmem" value="1" oninput="calcConv()">
-Amount / Person <input type="number" id="cper" oninput="calcConv()">
-Total Amount <input type="number" id="ctotal">
-<button onclick="saveConveyance()">Submit Conveyance</button>
+Amount/Person <input type="number" id="cper" oninput="calcConv()">
+Total <input type="number" id="ctotal">
+<button onclick="saveConveyance()">Submit</button>
 </div>
 
 <div class="box hidden" id="expBox">
-<h3>Expense</h3>
 Date <input type="date" id="edate">
-Category
-<select id="ecat"><option>Office</option><option>Other</option></select>
 Description <input id="edesc">
 Amount <input type="number" id="eamt">
-<button onclick="saveExpense()">Submit Expense</button>
-</div>
-
-<div class="box">
-<h3>My Entries</h3>
-<table>
-<thead>
-<tr><th>Date</th><th>Detail</th><th>Amount</th><th>Status</th></tr>
-</thead>
-<tbody id="teamTable"></tbody>
-</table>
+<button onclick="saveExpense()">Submit</button>
 </div>
 
 <button onclick="logout()">Logout</button>
 </div>
 
 <script>
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbxG6Di2BRNd1cieq0rj12DTUIxa6hUtr-fTqqn0I-kqIGFg0etqxDdmDwvPVFwJsShE/exec";
+
 let USERS=JSON.parse(localStorage.getItem("USERS"))||[
-{username:"admin",password:"admin",role:"admin",name:"Admin"},
-{username:"sup",password:"sup",role:"supervisor",name:"Supervisor",advance:0},
-{username:"team",password:"team",role:"team",name:"Team",location:"Site-1",advance:0}
+{username:"admin",password:"admin",role:"admin",name:"Admin"}
 ];
 let DATA=JSON.parse(localStorage.getItem("DATA"))||[];
 let currentUser=JSON.parse(localStorage.getItem("CURRENT_USER"));
 
-/* 🔄 AUTO LOGIN AFTER REFRESH */
 if(currentUser){
 loginBox.classList.add("hidden");
 if(currentUser.role=="admin"){adminPanel.classList.remove("hidden");loadAdmin();}
-if(currentUser.role=="supervisor"){supervisorPanel.classList.remove("hidden");loadSup();}
-if(currentUser.role=="team"){teamPanel.classList.remove("hidden");initTeam();}
 }
 
 function login(){
@@ -205,16 +133,63 @@ if(!u)return alert("Wrong Login");
 currentUser=u;
 localStorage.setItem("CURRENT_USER",JSON.stringify(u));
 loginBox.classList.add("hidden");
-if(u.role=="admin"){adminPanel.classList.remove("hidden");loadAdmin();}
-if(u.role=="supervisor"){supervisorPanel.classList.remove("hidden");loadSup();}
-if(u.role=="team"){teamPanel.classList.remove("hidden");initTeam();}
+adminPanel.classList.remove("hidden");
+loadAdmin();
 }
+
 function logout(){
 localStorage.removeItem("CURRENT_USER");
 location.reload();
 }
 
-/* बाकी पूरा JS SAME */
+function toggleBox(id){
+convBox.classList.add("hidden");
+expBox.classList.add("hidden");
+document.getElementById(id).classList.remove("hidden");
+}
+
+function calcConv(){
+ctotal.value=(+cmem.value||0)*(+cper.value||0);
+}
+
+function saveConveyance(){
+DATA.push({user:currentUser.username,date:cdate.value,detail:"Conveyance",amount:+ctotal.value,status:"Approved"});
+saveAll();
+}
+
+function saveExpense(){
+DATA.push({user:currentUser.username,date:edate.value,detail:edesc.value,amount:+eamt.value,status:"Approved"});
+saveAll();
+}
+
+function loadAdmin(){
+adminTable.innerHTML="";
+DATA.forEach((d,i)=>{
+adminTable.innerHTML+=`
+<tr>
+<td>${d.user}</td><td>${d.date}</td><td>${d.detail}</td>
+<td>${d.amount}</td><td>${d.status}</td>
+<td>${d.paid?"Paid":"Unpaid"}</td>
+<td>
+<button onclick="DATA[${i}].paid=true;saveAll()">Paid</button>
+</td>
+</tr>`;
+});
+}
+
+function saveAll(){
+localStorage.setItem("DATA",JSON.stringify(DATA));
+loadAdmin();
+}
+
+/* ✅ ADMIN → GOOGLE SHEET SAVE */
+function saveToSheet(){
+let approved=DATA.filter(d=>d.status=="Approved");
+fetch(SCRIPT_URL,{
+method:"POST",
+body:JSON.stringify(approved)
+}).then(r=>alert("Data saved to Google Sheet"));
+}
 </script>
 
 </body>
