@@ -1,239 +1,209 @@
-<script>
-const SHEET_URL="https://script.google.com/macros/s/AKfycbxG6Di2BRNd1cieq0rj12DTUIxa6hUtr-fTqqn0I-kqIGFg0etqxDdmDwvPVFwJsShE/exec";
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>DPR System – Final One Page</title>
 
-let USERS=JSON.parse(localStorage.getItem("USERS"))||[
-{username:"admin",password:"admin",role:"admin",name:"Admin",advance:0},
-{username:"sup",password:"sup",role:"supervisor",name:"Supervisor",advance:0},
-{username:"team",password:"team",role:"team",name:"Team",location:"Site-1",advance:0}
+<style>
+body{font-family:Arial;background:#f2f2f2;padding:20px}
+h2{color:#fff;padding:10px}
+.admin{background:#0d6efd}
+.supervisor{background:#b02a37}
+.team{background:#198754}
+.box{background:#fff;padding:15px;margin-bottom:15px;border-radius:6px}
+input,select,button,textarea{width:100%;padding:6px;margin:4px 0}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ccc;padding:6px;text-align:center}
+.hidden{display:none}
+.pending{background:#fff3cd}
+.approved{background:#d1e7dd}
+.rejected{background:#f8d7da}
+</style>
+</head>
+
+<body>
+
+<h2 class="admin">LOGIN</h2>
+<div class="box" id="loginBox">
+Username <input id="luser">
+Password <input id="lpass" type="password">
+<button onclick="login()">Login</button>
+</div>
+
+<!-- ================= ADMIN ================= -->
+<div id="adminPanel" class="hidden">
+<h2 class="admin">ADMIN PANEL</h2>
+
+<div class="box">
+<h3>Create User</h3>
+Username <input id="cu">
+Password <input id="cp">
+Name <input id="cn">
+Location <input id="cl">
+Role
+<select id="cr">
+<option value="team">Team</option>
+<option value="supervisor">Supervisor</option>
+</select>
+<button onclick="createUser()">Create User</button>
+</div>
+
+<div class="box">
+<h3>Give Advance</h3>
+User
+<select id="advUser"></select>
+Amount
+<input type="number" id="advAmt">
+<button onclick="giveAdvance()">Give Advance</button>
+</div>
+
+<div class="box">
+<h3>Existing Users</h3>
+<table>
+<thead>
+<tr>
+<th>User</th><th>Name</th><th>Role</th><th>Location</th><th>Advance</th>
+</tr>
+</thead>
+<tbody id="userTable"></tbody>
+</table>
+</div>
+
+<button onclick="logout()">Logout</button>
+</div>
+
+<!-- ================= SUPERVISOR ================= -->
+<div id="supervisorPanel" class="hidden">
+<h2 class="supervisor">SUPERVISOR PANEL</h2>
+<p>No action required</p>
+<button onclick="logout()">Logout</button>
+</div>
+
+<!-- ================= TEAM ================= -->
+<div id="teamPanel" class="hidden">
+<h2 class="team">TEAM PANEL</h2>
+
+<div class="box">
+<b>Name:</b> <span id="tname"></span><br>
+<b>Project:</b> <span id="tloc"></span><br>
+<b>Advance Balance:</b> ₹<span id="bal"></span>
+</div>
+
+<button onclick="logout()">Logout</button>
+</div>
+
+<script>
+/* ================= DATA ================= */
+let USERS = JSON.parse(localStorage.getItem("USERS")) || [
+ {username:"admin",password:"admin",role:"admin",name:"Admin",advance:0},
+ {username:"team",password:"team",role:"team",name:"Team",location:"Site-1",advance:0}
 ];
 
-let DATA=JSON.parse(localStorage.getItem("DATA"))||[];
-let currentUser=JSON.parse(localStorage.getItem("SESSION"))||null;
+let currentUser = JSON.parse(localStorage.getItem("SESSION")) || null;
 
-/* ===== AUTO LOGIN AFTER REFRESH ===== */
-window.onload=()=>{
-if(currentUser){
-loginBox.classList.add("hidden");
-if(currentUser.role==="admin"){adminPanel.classList.remove("hidden");loadAdmin();}
-if(currentUser.role==="supervisor"){supervisorPanel.classList.remove("hidden");loadSup();}
-if(currentUser.role==="team"){teamPanel.classList.remove("hidden");initTeam();}
-}
-}
+/* ================= AUTO LOGIN ================= */
+window.onload = function(){
+ if(currentUser){
+  document.getElementById("loginBox").classList.add("hidden");
+  if(currentUser.role==="admin"){
+   document.getElementById("adminPanel").classList.remove("hidden");
+   loadAdmin();
+  }
+  if(currentUser.role==="team"){
+   document.getElementById("teamPanel").classList.remove("hidden");
+   initTeam();
+  }
+ }
+};
 
-/* ===== LOGIN ===== */
+/* ================= LOGIN ================= */
 function login(){
-let u=USERS.find(x=>x.username===luser.value && x.password===lpass.value);
-if(!u)return alert("Wrong Login");
-currentUser=u;
-localStorage.setItem("SESSION",JSON.stringify(u));
-location.reload();
+ let u = USERS.find(x =>
+  x.username === document.getElementById("luser").value &&
+  x.password === document.getElementById("lpass").value
+ );
+ if(!u){ alert("Wrong login"); return; }
+ currentUser = u;
+ localStorage.setItem("SESSION", JSON.stringify(u));
+ location.reload();
 }
 
 function logout(){
-localStorage.removeItem("SESSION");
-location.reload();
+ localStorage.removeItem("SESSION");
+ location.reload();
 }
 
-/* ===== GOOGLE SHEET PUSH ===== */
-function pushToSheet(row){
-fetch(SHEET_URL,{
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body:JSON.stringify(row)
-});
-}
-
-/* ===== TEAM ===== */
-function initTeam(){
-tname.innerText=currentUser.name;
-tloc.innerText=currentUser.location;
-bal.innerText=currentUser.advance||0;
-cdate.valueAsDate=edate.valueAsDate=new Date();
-loadTeam();
-}
-
-function calcConv(){
-ctotal.value=(+cmem.value||0)*(+cper.value||0);
-}
-
-function saveConveyance(){
-let amt=+ctotal.value;
-if(!amt) return alert("Amount missing");
-
-let row={
-timestamp:new Date().toLocaleString(),
-username:currentUser.username,
-role:currentUser.role,
-date:cdate.value,
-detail:`Conveyance ${cmode.value} ${cfrom.value} to ${cto.value}`,
-status:"Pending",
-payment:amt
-};
-
-DATA.push(row);
-currentUser.advance-=amt;
-pushToSheet(row);
-saveAll();
-alert("Conveyance submitted");
-}
-
-function saveExpense(){
-let amt=+eamt.value;
-if(!amt) return alert("Amount missing");
-
-let row={
-timestamp:new Date().toLocaleString(),
-username:currentUser.username,
-role:currentUser.role,
-date:edate.value,
-detail:`Expense (${ecat.value}) - ${edesc.value}`,
-status:"Pending",
-payment:amt
-};
-
-DATA.push(row);
-currentUser.advance-=amt;
-pushToSheet(row);
-saveAll();
-alert("Expense submitted");
-}
-
-function loadTeam(){
-bal.innerText=currentUser.advance||0;
-teamTable.innerHTML="";
-DATA.filter(d=>d.username===currentUser.username).forEach(d=>{
-teamTable.innerHTML+=`
-<tr class="pending">
-<td>${d.date}</td>
-<td>${d.detail}</td>
-<td>${d.payment}</td>
-<td>${d.status}</td>
-</tr>`;
-});
-}
-
-/* ===== SUPERVISOR ===== */
-function loadSup(){
-supTable.innerHTML="";
-DATA.forEach((d,i)=>{
-supTable.innerHTML+=`
-<tr class="pending">
-<td>${d.username}</td>
-<td>${d.date}</td>
-<td>${d.detail}</td>
-<td>${d.payment}</td>
-<td>${d.status}</td>
-<td>
-<button onclick="approve(${i})">Approve</button>
-<button onclick="reject(${i})">Reject</button>
-</td>
-</tr>`;
-});
-}
-
-function approve(i){
-DATA[i].status="Approved";
-saveAll();
-}
-
-function reject(i){
-DATA[i].status="Rejected";
-saveAll();
-}
-
-/* ===== ADMIN ===== */
+/* ================= ADMIN ================= */
 function loadAdmin(){
-/* USERS TABLE */
-userTable.innerHTML="";
-USERS.forEach((u,i)=>{
-userTable.innerHTML+=`
-<tr>
-<td>${u.username}</td>
-<td>${u.name||""}</td>
-<td>${u.role}</td>
-<td>${u.location||""}</td>
-<td>${u.advance||0}</td>
-<td><button onclick="deleteUser(${i})">Delete</button></td>
-</tr>`;
-});
+ const userTable = document.getElementById("userTable");
+ const advUser = document.getElementById("advUser");
 
-/* GIVE ADVANCE DROPDOWN (FIXED) */
-advUser.innerHTML="";
-USERS.filter(u=>u.role!=="admin").forEach(u=>{
-advUser.innerHTML+=`<option value="${u.username}">${u.username}</option>`;
-});
+ userTable.innerHTML="";
+ advUser.innerHTML="";
 
-/* APPROVED TABLE */
-adminTable.innerHTML="";
-let paid=0,pend=0;
-DATA.filter(d=>d.status==="Approved").forEach((d,i)=>{
-if(d.paid) paid+=d.payment; else pend+=d.payment;
-adminTable.innerHTML+=`
-<tr>
-<td>${d.username}</td>
-<td>${d.date}</td>
-<td>${d.detail}</td>
-<td>${d.payment}</td>
-<td>${d.status}</td>
-<td>${d.paid?"Paid":"Unpaid"}</td>
-<td>
-<button onclick="markPaid(${i})">Paid</button>
-<button onclick="markUnpaid(${i})">Unpaid</button>
-</td>
-</tr>`;
-});
-paidT.innerText=paid;
-pendT.innerText=pend;
+ USERS.forEach(u=>{
+  userTable.innerHTML += `
+   <tr>
+    <td>${u.username}</td>
+    <td>${u.name||""}</td>
+    <td>${u.role}</td>
+    <td>${u.location||""}</td>
+    <td>${u.advance||0}</td>
+   </tr>`;
+ });
+
+ USERS.filter(u=>u.role!=="admin").forEach(u=>{
+  advUser.innerHTML += `<option value="${u.username}">${u.username}</option>`;
+ });
 }
 
-function deleteUser(i){
-USERS.splice(i,1);
-saveAll();
-}
-
-function markPaid(i){
-DATA[i].paid=true;
-saveAll();
-}
-
-function markUnpaid(i){
-DATA[i].paid=false;
-saveAll();
-}
-
-/* ===== CREATE USER ===== */
 function createUser(){
-if(!cu.value||!cp.value) return alert("Username/Password missing");
-USERS.push({
-username:cu.value,
-password:cp.value,
-name:cn.value,
-location:cl.value,
-role:cr.value,
-advance:0
-});
-saveAll();
-alert("User created");
+ if(!cu.value || !cp.value){ alert("Missing fields"); return; }
+
+ USERS.push({
+  username:cu.value,
+  password:cp.value,
+  name:cn.value,
+  location:cl.value,
+  role:cr.value,
+  advance:0
+ });
+
+ saveAll();
+ alert("User created");
 }
 
-/* ===== GIVE ADVANCE (FIXED) ===== */
+/* ================= GIVE ADVANCE (FIXED) ================= */
 function giveAdvance(){
-let u=USERS.find(x=>x.username===advUser.value);
-if(!u) return alert("User not found");
-u.advance += Number(advAmt.value||0);
-advAmt.value="";
-saveAll();
-alert("Advance added");
+ const advUser = document.getElementById("advUser");
+ const advAmt  = document.getElementById("advAmt");
+
+ let u = USERS.find(x=>x.username===advUser.value);
+ if(!u){ alert("Select user"); return; }
+
+ u.advance += Number(advAmt.value || 0);
+ advAmt.value="";
+
+ saveAll();
+ alert("Advance added");
 }
 
-/* ===== SAVE ===== */
-function saveAll(){
-localStorage.setItem("USERS",JSON.stringify(USERS));
-localStorage.setItem("DATA",JSON.stringify(DATA));
-localStorage.setItem("SESSION",JSON.stringify(currentUser));
+/* ================= TEAM ================= */
+function initTeam(){
+ document.getElementById("tname").innerText = currentUser.name;
+ document.getElementById("tloc").innerText  = currentUser.location;
+ document.getElementById("bal").innerText   = currentUser.advance || 0;
+}
 
-if(currentUser.role==="admin") loadAdmin();
-if(currentUser.role==="supervisor") loadSup();
-if(currentUser.role==="team") loadTeam();
+/* ================= SAVE ================= */
+function saveAll(){
+ localStorage.setItem("USERS", JSON.stringify(USERS));
+ localStorage.setItem("SESSION", JSON.stringify(currentUser));
+
+ if(currentUser.role==="admin") loadAdmin();
+ if(currentUser.role==="team") initTeam();
 }
 </script>
+
+</body>
+</html>
